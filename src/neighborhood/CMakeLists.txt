@@ -12,6 +12,7 @@ set(neighborhood_SOURCES
     neighborhood/dist_graph.c
     neighborhood/neighbor.c
     neighborhood/neighbor_locality.cpp
+    neighborhood/neighbor_utils.cpp
     PARENT_SCOPE
     )
 
