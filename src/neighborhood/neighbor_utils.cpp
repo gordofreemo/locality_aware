@@ -13,7 +13,7 @@
     - Made malloc to idx vector 
     - Commented out allocation to n_msgs
 */
-void form_send_comm_standard(int[] procs, int[] ptr, int n_msgs, const long[] off_proc_columns, const int[] counts, int[] idx)
+void form_send_comm_standard(int procs[], int ptr[], int n_msgs, long off_proc_columns[], int counts[], int idx[], int first_col)
 {
     int rank, num_procs;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -65,7 +65,7 @@ void form_send_comm_standard(int[] procs, int[] ptr, int n_msgs, const long[] of
         MPI_Recv(&(recv_buf[ctr]), count, MPI_LONG, proc, msg_tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         for (int i = 0; i < count; i++)
         {
-            idx_local[ctr+i] = (recv_buf[ctr+i] - A.first_col);
+            idx_local[ctr+i] = (recv_buf[ctr+i] - first_col);
         }
         ctr += count;
         // A.send_comm->ptr.push_back((U)(ctr));
@@ -75,10 +75,12 @@ void form_send_comm_standard(int[] procs, int[] ptr, int n_msgs, const long[] of
     // n_msgs = A.send_comm->procs.size();
 
     if (n_msgs)
-        req.resize(A.send_comm->n_msgs);
+        req.resize(n_msgs);
 
     if (n_msgs)
         MPI_Waitall(n_msgs, req.data(), MPI_STATUSES_IGNORE);
 
     idx = (int *) malloc(sizeof(int) * idx_local.size());
+    for (int i = 0; i < idx_local.size(); i++)
+      idx[i] = idx_local[i];
 }
