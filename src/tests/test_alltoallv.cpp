@@ -300,4 +300,3 @@ TEST(RandomCommTest, TestsInTests)
     MPIX_Comm_free(topo_comm);
     setenv("PPN", "16", 1);
 }
-
