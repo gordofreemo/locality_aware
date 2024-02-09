@@ -83,7 +83,7 @@ void topology_discovery_personalized(int procs[], int ptr[], int n_msgs, long of
       idx[i] = idx_local[i];
 }
 
-topology_discovery_nonblocking(int procs[], int ptr[], int n_msgs, long off_proc_columns[], int counts[], int idx[], int first_col)
+void topology_discovery_nonblocking(int procs[], int ptr[], int n_msgs, long off_proc_columns[], int counts[], int idx[], int first_col)
 {
     int rank, num_procs;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -160,7 +160,7 @@ topology_discovery_nonblocking(int procs[], int ptr[], int n_msgs, long off_proc
     // A.send_comm.n_msgs = A.send_comm.procs.size();
     idx = (int *) malloc(sizeof(int) * idx_local.size());
     for (int i = 0; i < idx_local.size(); i++)
-        idx[i] = idx_local[i]
+        idx[i] = idx_local[i];
 }
 
 void topology_discovery_loc_aware(int procs[], int ptr[], int n_msgs, long off_proc_columns[], int counts[], int idx[], int first_col, int size_msgs, MPIX_Comm* comm)
@@ -174,6 +174,7 @@ void topology_discovery_loc_aware(int procs[], int ptr[], int n_msgs, long off_p
     std::vector<long> recv_buf;
     std::vector<long> send_buf(size_msgs + 2*n_msgs);
     std::vector<MPI_Request> req(n_msgs, 0);
+    std::vector<int> idx_local;
     std::vector<int> sizes(PPN, 0);
     int start, end, proc, count, ctr, flag;
     int ibar = 0;
@@ -260,7 +261,7 @@ void topology_discovery_loc_aware(int procs[], int ptr[], int n_msgs, long off_p
         {
             // Test if all of my synchronous sends have completed.
             // They only complete once actually received.
-            MPI_Testall(n_sends, A.recv_comm->req.data(), &flag, MPI_STATUSES_IGNORE);
+            MPI_Testall(n_sends, req.data(), &flag, MPI_STATUSES_IGNORE);
             if (flag)
             {
                 ibar = 1;
@@ -297,7 +298,7 @@ void topology_discovery_loc_aware(int procs[], int ptr[], int n_msgs, long off_p
     // until I have received fewer than the number of global indices I am waiting on
     if (local_size_msgs)
     {
-        A.send_comm->idx.resize(local_size_msgs);
+        //A.send_comm->idx.resize(local_size_msgs);
         recv_buf.resize(local_size_msgs);
     }
 
