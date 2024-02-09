@@ -126,28 +126,16 @@ void form_send_comm_standard(ParMat<U>& A)
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
 
-    double t0, tfinal;
-
     std::vector<long> recv_buf;
     std::vector<int> sizes(num_procs, 0);
     int start, end, proc, count, ctr;
     MPI_Status recv_status;
 
     // Allreduce to find size of data I will receive
-#ifdef PROFILE
-MPI_Barrier(MPI_COMM_WORLD);
-t0 = MPI_Wtime();
-#endif
-
     for (int i = 0; i < A.recv_comm->n_msgs; i++)
         sizes[A.recv_comm->procs[i]] = A.recv_comm->ptr[i+1] - A.recv_comm->ptr[i];
     MPI_Allreduce(MPI_IN_PLACE, sizes.data(), num_procs, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
     A.send_comm->size_msgs = sizes[rank];
-
-#ifdef PROFILE
-tfinal = (MPI_Wtime() - t0);
-MPI_Reduce(&tfinal, &t0, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
-if (rank == 0) printf("Allreduce time %e\n", t0);
 
     // Send a message to every process that I will need data from
     // Tell them which global indices I need from them
@@ -200,11 +188,6 @@ t0 = MPI_Wtime();
 
     if (A.recv_comm->n_msgs)
         MPI_Waitall(A.recv_comm->n_msgs, A.recv_comm->req.data(), MPI_STATUSES_IGNORE);
-#ifdef PROFILE
-tfinal = (MPI_Wtime() - t0);
-MPI_Reduce(&tfinal, &t0, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
-if (rank == 0) printf("Standard P2P time %e\n", t0);
-#endif
 }
 
 // Must Form Recv Comm before Send!
@@ -392,7 +375,6 @@ void form_send_comm_torsten_loc(ParMat<U>& A, MPIX_Comm* comm)
 template <typename U>
 void form_send_comm_torsten(ParMat<U>& A)
 {
-    double t0, tfinal;
     int rank, num_procs;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
@@ -491,11 +473,6 @@ void communicate(ParMat<T>& A, std::vector<U>& data, std::vector<U>& recvbuf, MP
     T start, end;
     int tag = 2948;
     std::vector<U> sendbuf;
-    double t0, tfinal;
-    #ifdef PROFILE
-    MPI_Barrier(MPI_COMM_WORLD);
-    t0=MPI_Wtime();
-    #endif
     if (A.send_comm->size_msgs)
         sendbuf.resize(A.send_comm->size_msgs);
     for (int i = 0; i < A.send_comm->n_msgs; i++)
@@ -524,11 +501,6 @@ void communicate(ParMat<T>& A, std::vector<U>& data, std::vector<U>& recvbuf, MP
         MPI_Waitall(A.send_comm->n_msgs, A.send_comm->req.data(), MPI_STATUSES_IGNORE);
     if (A.recv_comm->n_msgs)
     MPI_Waitall(A.recv_comm->n_msgs, A.recv_comm->req.data(), MPI_STATUSES_IGNORE);
-    #ifdef PROFILE
-    tfinal = (MPI_Wtime() - t0);
-    MPI_Reduce(&tfinal, &t0, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
-    if (rank == 0) printf("Communicate time %e\n", t0);
-    #endif
 }
 
 template <typename U, typename T>
