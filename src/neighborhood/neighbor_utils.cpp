@@ -83,7 +83,7 @@ void topology_discovery_personalized(int procs[], int ptr[], int n_msgs, long of
       idx[i] = idx_local[i];
 }
 
-void topology_discovery_nonblocking(int procs[], int ptr[], int n_msgs, long off_proc_columns[], int counts[], int idx[], int first_col)
+topology_discovery_nonblocking(int procs[], int ptr[], int n_msgs, long off_proc_columns[], int counts[], int idx[], int first_col)
 {
     int rank, num_procs;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -160,7 +160,7 @@ void topology_discovery_nonblocking(int procs[], int ptr[], int n_msgs, long off
     // A.send_comm.n_msgs = A.send_comm.procs.size();
     idx = (int *) malloc(sizeof(int) * idx_local.size());
     for (int i = 0; i < idx_local.size(); i++)
-        idx[i] = idx_local[i];
+        idx[i] = idx_local[i]
 }
 
 void topology_discovery_loc_aware(int procs[], int ptr[], int n_msgs, long off_proc_columns[], int counts[], int idx[], int first_col, int size_msgs, MPIX_Comm* comm)
