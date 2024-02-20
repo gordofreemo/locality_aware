@@ -14,7 +14,7 @@
     - Made malloc to idx vector 
     - Commented out allocation to n_msgs
 */
-void topology_discovery_personalized(int procs[], int ptr[], int n_msgs, long off_proc_columns[], int counts[], int idx[], int first_col)
+void topology_discovery_personalized(int recv_procs[], int recv_ptr[], int recv_n_msgs, long off_proc_columns[], int recv_counts[], int first_col, int* send_size_msgs, int send_idx[], int send_ptr[], int send_procs[], int send_counts[], MPI_Request send_req[], int* send_n_msgs)
 {
     int rank, num_procs;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -22,45 +22,47 @@ void topology_discovery_personalized(int procs[], int ptr[], int n_msgs, long of
 
     std::vector<long> recv_buf;
     std::vector<int> sizes(num_procs, 0);
-    std::vector<MPI_Request> req(n_msgs, 0);
+    std::vector<MPI_Request> req(recv_n_msgs, 0);
     std::vector<int> idx_local; 
+    std::vector<int> ptr_local;
+    std::vector<int> procs_local;
+    std::vector<int> counts_local; 
     int start, end, proc, count, ctr;
-    int size_msgs;
     MPI_Status recv_status;
 
     // Allreduce to find size of data I will receive
-    for (int i = 0; i < n_msgs; i++)
-        sizes[procs[i]] = ptr[i+1] - ptr[i];
+    for (int i = 0; i < recv_n_msgs; i++)
+        sizes[recv_procs[i]] = recv_ptr[i+1] - recv_ptr[i];
     MPI_Allreduce(MPI_IN_PLACE, sizes.data(), num_procs, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
-    size_msgs = sizes[rank];
+    *send_size_msgs = sizes[rank];
 
     int msg_tag = 1234;
-    for (int i = 0; i < n_msgs; i++)
+    for (int i = 0; i < recv_n_msgs; i++)
     {
-        proc = procs[i];
-        MPI_Isend(&(off_proc_columns[ptr[i]]), counts[i], MPI_LONG, proc, msg_tag, 
+        proc = recv_procs[i];
+        MPI_Isend(&(off_proc_columns[recv_ptr[i]]), recv_counts[i], MPI_LONG, proc, msg_tag, 
                 MPI_COMM_WORLD, &(req[i]));
     }
 
     // Wait to receive values
     // until I have received fewer than the number of global indices I am waiting on
-    if (size_msgs)
+    if (*send_size_msgs)
     {
-        idx_local.resize(size_msgs);
-        recv_buf.resize(size_msgs);
+        idx_local.resize(*send_size_msgs);
+        recv_buf.resize(*send_size_msgs);
     }
     ctr = 0;
-    // A.send_comm->ptr.push_back(0);
-    while (ctr < size_msgs)
+    ptr_local.push_back(0);
+    while (ctr < *send_size_msgs)
     {
         // Wait for a message
         MPI_Probe(MPI_ANY_SOURCE, msg_tag, MPI_COMM_WORLD, &recv_status);
 
         // Get the source process and message size
         proc = recv_status.MPI_SOURCE;
-        // A.send_comm->procs.push_back(proc);
+        procs_local.push_back(proc);
         MPI_Get_count(&recv_status, MPI_LONG, &count);
-        // A.send_comm->counts.push_back(count);
+        counts_local.push_back(count);
 
         // Receive the message, and add local indices to send_comm
         MPI_Recv(&(recv_buf[ctr]), count, MPI_LONG, proc, msg_tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
@@ -69,18 +71,37 @@ void topology_discovery_personalized(int procs[], int ptr[], int n_msgs, long of
             idx_local[ctr+i] = (recv_buf[ctr+i] - first_col);
         }
         ctr += count;
-        // A.send_comm->ptr.push_back((U)(ctr));
+        ptr_local.push_back(ctr);
     }
     
     // Set send sizes
-    // n_msgs = A.send_comm->procs.size();
+    *send_n_msgs = procs_local.size();
 
-    if (n_msgs)
-        MPI_Waitall(n_msgs, req.data(), MPI_STATUSES_IGNORE);
+    
+    if (*send_n_msgs) 
+        send_req = (MPI_Request*) malloc(sizeof(MPI_Request) * (*send_n_msgs));
+        A.send_comm.req.resize(A.send_comm.n_msgs)
 
-    idx = (int *) malloc(sizeof(int) * idx_local.size());
+    
+    if (recv_n_msgs)
+        MPI_Waitall(recv_n_msgs, req.data(), MPI_STATUSES_IGNORE);
+
+    // Allocate and update passed in send values
+    send_idx = (int *) malloc(sizeof(int) * idx_local.size());
     for (int i = 0; i < idx_local.size(); i++)
-      idx[i] = idx_local[i];
+        send_idx[i] = idx_local[i];
+
+    send_ptr = (int *) malloc(sizeof(int) * ptr_local.size());
+    for (int i = 0; i < ptr_local.size(); i++)
+        send_ptr[i] = ptr_local[i]; 
+    
+    send_procs = (int *) malloc(sizeof(int) * ptr_local.size());
+    for (int i = 0; i < procs_local.size(); i++)
+        send_procs[i] = procs_local[i];
+    
+    send_counts = (int *) malloc(sizeof(int) * counts_local.size());
+    for (int i = 0; i < counts_local.size(); i++)
+        send_counts[i] = counts_local[i];
 }
 
 void topology_discovery_nonblocking(int procs[], int ptr[], int n_msgs, long off_proc_columns[], int counts[], int idx[], int first_col)
