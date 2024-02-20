@@ -3,6 +3,7 @@
 
 #include "mpi.h"
 #include <vector>
+#include "neighborhood/neighbor_utils.h"
 
 struct Mat 
 {
