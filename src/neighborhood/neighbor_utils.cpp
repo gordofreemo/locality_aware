@@ -80,7 +80,6 @@ void topology_discovery_personalized(int recv_procs[], int recv_ptr[], int recv_
     
     if (*send_n_msgs) 
         send_req = (MPI_Request*) malloc(sizeof(MPI_Request) * (*send_n_msgs));
-        A.send_comm.req.resize(A.send_comm.n_msgs)
 
     
     if (recv_n_msgs)
