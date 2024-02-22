@@ -325,8 +325,40 @@ void form_comm(ParMat<U>& A)
     // Form Recv Side 
     form_recv_comm(A);
 
-    // Form Send Side (Algorithm Options Here!)
-    form_send_comm_standard(A);
+    int* send_size_msgs, send_n_msgs;
+    int send_idx[], send_ptr[], send_procs[], send_counts[];
+    MPI_Request send_req[];
+    // W/out C++ vectors
+    topology_discovery_personalized(
+        A.recv_comm.procs.data(),
+        A.recv_comm.ptr.data(),
+        A.recv_comm.n_msgs,
+        A.off_proc_columns.data(),
+        A.recv_comm.counts.data(),
+        send_size_msgs,
+        send_idx,
+        send_ptr,
+        send_procs,
+        send_counts,
+        send_req,
+        send_n_msgs
+    );
+    A.send_comm.size_msgs = send_size_msgs;
+    A.send_comm.n_msgs = send_n_msgs;
+    
+    std::vector<int> idx(send_idx[0], sizeof(send_idx) / sizeof(int));
+    std::vector<int> ptr(send_ptr[0], sizeof(send_ptr) / sizeof(int));
+    std::vector<int> procs(send_procs[0], sizeof(send_procs) / sizeof(int));
+    std::vector<int> counts(send_counts[0], sizeof(send_counts) / sizeof(int));
+    std::vector<MPI_Request> req(send_req[0], sizeof(send_req) / sizeof(MPI_Request));
+    A.send_comm.idx = idx;
+    A.send_comm.ptr = ptr;
+    A.send_comm.procs = procs;
+    A.send_comm.counts = counts; 
+    A.send_comm.req = req;
+
+    // Form Send Side (Algorithm Options Here!) (w/ C++ vectors)
+    //form_send_comm_standard(A);
     //form_send_comm_torsten(A);
     //form_send_comm_rma(A);
 }
